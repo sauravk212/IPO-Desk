@@ -44,6 +44,8 @@ Create a `.env` file in the project root for any environment variables your Open
 - `langchain-openai`
 - `langgraph`
 
-## Screenshot
+## Screenshots
 
 ![IPO Desk Screenshot](screenshot.png)
+![Chat Screenshot1](screenshot1.png)
+![Chat Screenshot2](screenshot2.png)
