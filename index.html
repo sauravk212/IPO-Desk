@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPO Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFEDE4;
+  --paper-deep:#E4E1D6;
+  --ink:#1C2B4A;
+  --ink-soft:#5D6C86;
+  --rule:#C8C4B4;
+  --stamp:#B4342A;
+  --seal:#1F6F5C;
+  --marigold:#C07E1E;
+
+  --display:'Bodoni Moda',Georgia,serif;
+  --body:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--body);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  font-size:15px;
+  line-height:1.55;
+}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-rows:auto 1fr;height:100%}
+
+.masthead{
+  display:flex;align-items:baseline;gap:14px;
+  padding:16px 24px 12px;
+  border-bottom:1px solid var(--ink);
+  background:var(--paper);
+  position:relative;
+}
+.masthead::after{ /* guilloche hint, as on a share certificate */
+  content:'';position:absolute;left:0;right:0;bottom:-4px;height:3px;
+  background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 7px);
+  opacity:.25;
+}
+.wordmark{font-family:var(--display);font-size:27px;font-weight:600;letter-spacing:-.01em}
+.wordmark em{font-style:italic;font-weight:400}
+.eyebrow{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+.live{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--seal)}
+.pip{width:6px;height:6px;border-radius:50%;background:var(--seal);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.28}}
+
+.body{display:grid;grid-template-columns:288px 1fr;min-height:0}
+
+/* ---------- rail ---------- */
+.rail{
+  border-right:1px solid var(--rule);
+  background:var(--paper-deep);
+  overflow-y:auto;
+  padding:18px 0 32px;
+}
+.rail-head{
+  padding:0 18px 10px;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+  display:flex;justify-content:space-between;
+}
+.entry{
+  position:relative;padding:12px 18px;
+  border-bottom:1px solid var(--rule);
+  cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;
+  width:100%;text-align:left;font:inherit;color:inherit;
+  transition:background .16s ease;
+}
+.entry:hover,.entry:focus-visible{background:rgba(28,43,74,.055)}
+.entry-name{font-weight:500;font-size:14px;letter-spacing:-.005em}
+.entry-meta{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:4px;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);
+}
+.days{font-weight:500}
+.days.soon{color:var(--stamp)}
+.days.safe{color:var(--seal)}
+
+/* the signature: a stamp lands on whatever closes today */
+.entry.today{background:rgba(180,52,42,.05)}
+.stamp{
+  position:absolute;right:12px;top:50%;
+  transform:translateY(-50%) rotate(-9deg);
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--stamp);border:1.5px solid var(--stamp);
+  border-radius:2px;padding:3px 6px;opacity:.82;
+  pointer-events:none;line-height:1.1;text-align:center;
+}
+.rail-empty{padding:14px 18px;font-size:13px;color:var(--ink-soft)}
+
+/* ---------- conversation ---------- */
+.convo{display:grid;grid-template-rows:1fr auto;min-height:0}
+.scroll{overflow-y:auto;padding:26px 30px 10px}
+.thread{max-width:660px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+.turn-label{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px;
+}
+.from-you{align-self:flex-end;max-width:82%}
+.from-you .turn-label{text-align:right}
+.from-you .text{
+  background:var(--ink);color:var(--paper);
+  padding:11px 15px;border-radius:2px;
+  white-space:pre-wrap;
+}
+.from-desk{max-width:100%}
+.from-desk .text{
+  border-left:2px solid var(--ink);padding-left:15px;
+}
+.from-desk .text > *:first-child{margin-top:0}
+.from-desk .text > *:last-child{margin-bottom:0}
+.from-desk .text p{margin:0 0 10px}
+.from-desk .text ul,.from-desk .text ol{margin:0 0 11px 17px}
+.from-desk .text li{margin:3px 0}
+.from-desk .text h3,.from-desk .text h4,.from-desk .text h5{
+  font-family:var(--display);font-weight:600;font-size:17px;margin:15px 0 6px;
+}
+.from-desk .text strong{font-weight:600}
+.from-desk .text code{
+  font-family:var(--mono);font-size:12.5px;
+  background:rgba(28,43,74,.07);padding:1px 5px;border-radius:2px;
+}
+.from-desk .text a{
+  color:var(--ink);text-decoration:underline;
+  text-decoration-color:var(--marigold);text-decoration-thickness:1.5px;
+  text-underline-offset:2px;
+}
+.from-desk .text a:hover{text-decoration-color:var(--ink)}
+
+/* tables get the ledger treatment: mono uppercase heads, hairline rules,
+   tabular figures so the countdown column stacks straight */
+.tw{overflow-x:auto;margin:12px 0}
+.from-desk .text table{width:100%;border-collapse:collapse;font-size:13.5px}
+.from-desk .text th{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-soft);font-weight:500;text-align:left;white-space:nowrap;
+  padding:0 16px 6px 0;border-bottom:1px solid var(--ink);
+}
+.from-desk .text td{
+  padding:7px 16px 7px 0;border-bottom:1px solid var(--rule);
+  font-variant-numeric:tabular-nums;vertical-align:top;
+}
+.from-desk .text tbody tr:last-child td{border-bottom:0}
+
+/* carbon-copy ledger entries for tool activity */
+/* segmented type switch -- ruled boxes, like form checkboxes on a mandate slip */
+.segs{display:flex;margin-left:auto;border:1px solid var(--ink);border-radius:2px;overflow:hidden}
+.seg{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  background:none;border:0;border-left:1px solid var(--rule);
+  padding:6px 11px;cursor:pointer;color:var(--ink-soft);
+  transition:background .14s ease,color .14s ease;
+}
+.seg:first-child{border-left:0}
+.seg:hover{color:var(--ink)}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.live{margin-left:16px}
+
+/* collapsible steps container: open while working, folded once the answer starts */
+.steps{margin:2px 0}
+.steps-head{
+  display:flex;align-items:center;gap:8px;width:100%;
+  background:none;border:0;padding:4px 0;cursor:pointer;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-soft);text-align:left;
+}
+.steps-head:hover{color:var(--ink)}
+.caret-tri{
+  color:var(--marigold);font-size:9px;line-height:1;
+  transition:transform .2s ease;transform:rotate(90deg);
+}
+.steps[data-open="0"] .caret-tri{transform:rotate(0deg)}
+.steps-rule{flex:1;height:1px;background:var(--rule)}
+.steps-head.working .steps-label{animation:fade 1.6s ease-in-out infinite}
+@keyframes fade{0%,100%{opacity:1}50%{opacity:.45}}
+
+.steps-panel{
+  display:grid;grid-template-rows:1fr;
+  transition:grid-template-rows .24s ease;
+}
+.steps[data-open="0"] .steps-panel{grid-template-rows:0fr}
+.steps-inner{min-height:0;overflow:hidden}
+
+.trace{
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);
+  border-left:2px dotted var(--marigold);padding:5px 0 5px 13px;
+  margin:2px 0;animation:slip .28s ease both;
+}
+@keyframes slip{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:none}}
+.trace b{color:var(--marigold);font-weight:500}
+.trace .ret{color:var(--ink);opacity:.62}
+.caret{display:inline-block;width:7px;height:14px;background:var(--ink);vertical-align:-2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+
+.fault{border-left:2px solid var(--stamp);padding-left:13px;color:var(--stamp);font-size:13.5px}
+
+/* ---------- empty state ---------- */
+.opening{max-width:660px;margin:8vh auto 0;text-align:left}
+.opening h1{font-family:var(--display);font-size:34px;font-weight:400;line-height:1.2;letter-spacing:-.015em}
+.opening h1 em{font-style:italic}
+.opening p{color:var(--ink-soft);margin-top:12px;font-size:15px;max-width:44ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.chip{
+  font-family:var(--mono);font-size:11.5px;
+  background:none;border:1px solid var(--rule);border-radius:2px;
+  padding:7px 12px;cursor:pointer;color:var(--ink);
+  transition:border-color .16s ease,background .16s ease;
+}
+.chip:hover{border-color:var(--ink);background:rgba(28,43,74,.04)}
+
+/* ---------- composer ---------- */
+.composer{
+  border-top:1px solid var(--rule);background:var(--paper);
+  padding:14px 30px 20px;
+}
+.composer-inner{max-width:660px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+textarea{
+  flex:1;resize:none;font:inherit;color:var(--ink);
+  background:none;border:0;border-bottom:1.5px solid var(--rule);
+  padding:8px 2px;max-height:120px;transition:border-color .16s ease;
+}
+textarea:focus{outline:0;border-bottom-color:var(--ink)}
+textarea::placeholder{color:var(--ink-soft);opacity:.75}
+.send{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);border:0;border-radius:2px;
+  padding:10px 18px;cursor:pointer;transition:opacity .16s ease;
+}
+.send:hover{opacity:.86}
+.send:disabled{opacity:.35;cursor:not-allowed}
+.hint{
+  max-width:660px;margin:8px auto 0;font-family:var(--mono);
+  font-size:10px;letter-spacing:.06em;color:var(--ink-soft);opacity:.7;
+}
+
+/* ---------- responsive ---------- */
+@media(max-width:820px){
+  .body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .rail{
+    border-right:0;border-bottom:1px solid var(--rule);
+    display:flex;overflow-x:auto;padding:12px 0;gap:0;
+  }
+  .rail-head{display:none}
+  .entry{min-width:190px;border-bottom:0;border-right:1px solid var(--rule)}
+  .scroll{padding:20px 18px 8px}
+  .composer{padding:12px 18px 16px}
+  .opening{margin-top:5vh}
+  .opening h1{font-size:27px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="masthead">
+    <span class="wordmark">IPO <em>Desk</em></span>
+    <span class="eyebrow">Grey market &amp; deadlines</span>
+    <div class="segs" role="group" aria-label="IPO type">
+      <button class="seg" data-type="mainboard" aria-pressed="true">Mainboard</button>
+      <button class="seg" data-type="sme" aria-pressed="false">SME</button>
+      <button class="seg" data-type="all" aria-pressed="false">All</button>
+    </div>
+    <span class="live"><span class="pip"></span><span id="live-count">loading</span></span>
+  </header>
+
+  <div class="body">
+    <aside class="rail" id="rail" aria-label="Open IPOs">
+      <div class="rail-head"><span>Open now</span><span id="rail-date"></span></div>
+      <div id="rail-list"><div class="rail-empty">Reading the register…</div></div>
+    </aside>
+
+    <main class="convo">
+      <div class="scroll" id="scroll">
+        <div class="thread" id="thread">
+          <div class="opening" id="opening">
+            <h1>Which IPOs are open, and <em>by when</em> must you apply?</h1>
+            <p>Ask in plain language. Answers come from InvestorGain's live register, never from memory.</p>
+            <div class="chips">
+              <button class="chip" data-q="What IPOs are open right now?">What's open now</button>
+              <button class="chip" data-q="Is anything closing today or tomorrow?">Closing soon</button>
+              <button class="chip" data-q="Which IPOs are opening in the next two weeks?">Opening next</button>
+              <button class="chip" data-q="Which IPOs closed in the last week?">Recently closed</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <textarea id="input" rows="1" placeholder="Ask about deadlines, open issues, a company by name…" aria-label="Your question"></textarea>
+          <button class="send" id="send">Ask</button>
+        </div>
+        <div class="hint">Enter to send · Shift+Enter for a new line</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const thread = $('thread'), scroll = $('scroll'), input = $('input'), send = $('send');
+let busy = false;
+let ipoType = 'mainboard';
+
+const TYPE_LABEL = {mainboard:'Mainboard · open', sme:'SME · open', all:'All · open'};
+
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const atBottom = () => scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 90;
+const toBottom = () => scroll.scrollTop = scroll.scrollHeight;
+
+/* ---------- markdown ----------
+   Deliberately small and escape-first: input is escaped before any tag is
+   introduced, so model output can't inject markup. Handles what the agent
+   actually emits — tables, lists, bold, code, links — and nothing more. */
+
+function mdInline(s){
+  return s
+    .replace(/`([^`]+)`/g, (_,c) => `<code>${c}</code>`)
+    .replace(/\*\*([^*]+)\*\*/g, (_,c) => `<strong>${c}</strong>`)
+    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, (_,p,c) => `${p}<em>${c}</em>`)
+    // &amp; is unwound inside hrefs only -- query strings would break otherwise
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      (_,t,u) => `<a href="${u.replace(/&amp;/g,'&')}" target="_blank" rel="noopener">${t}</a>`)
+    .replace(/(^|\s)(https?:\/\/[^\s<]+)/g,
+      (_,p,u) => `${p}<a href="${u.replace(/&amp;/g,'&')}" target="_blank" rel="noopener">${u}</a>`);
+}
+
+const isTableSep = l => /-{2,}/.test(l) && /^[\s|:-]+$/.test(l);
+const cellsOf = r => r.replace(/^\s*\|/,'').replace(/\|\s*$/,'').split('|').map(c => c.trim());
+
+function md(src){
+  const lines = esc(src).replace(/\r/g,'').split('\n');
+  let out = '', i = 0;
+
+  const startsTable = n =>
+    lines[n].includes('|') && n+1 < lines.length && isTableSep(lines[n+1]);
+
+  while(i < lines.length){
+    const line = lines[i];
+
+    if(startsTable(i)){
+      const head = cellsOf(line);
+      i += 2;
+      const rows = [];
+      while(i < lines.length && lines[i].includes('|') && lines[i].trim()){
+        rows.push(cellsOf(lines[i])); i++;
+      }
+      out += '<div class="tw"><table><thead><tr>'
+        + head.map(h => `<th>${mdInline(h)}</th>`).join('')
+        + '</tr></thead><tbody>'
+        + rows.map(r => '<tr>' + r.map(c => `<td>${mdInline(c)}</td>`).join('') + '</tr>').join('')
+        + '</tbody></table></div>';
+      continue;
+    }
+
+    const h = /^(#{1,4})\s+(.*)$/.exec(line);
+    if(h){
+      const lvl = Math.min(h[1].length + 2, 5);
+      out += `<h${lvl}>${mdInline(h[2])}</h${lvl}>`; i++; continue;
+    }
+
+    if(/^\s*[-*•]\s+/.test(line)){
+      const items = [];
+      while(i < lines.length && /^\s*[-*•]\s+/.test(lines[i])){
+        items.push(lines[i].replace(/^\s*[-*•]\s+/,'')); i++;
+      }
+      out += '<ul>' + items.map(t => `<li>${mdInline(t)}</li>`).join('') + '</ul>';
+      continue;
+    }
+
+    if(/^\s*\d+[.)]\s+/.test(line)){
+      const items = [];
+      while(i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])){
+        items.push(lines[i].replace(/^\s*\d+[.)]\s+/,'')); i++;
+      }
+      out += '<ol>' + items.map(t => `<li>${mdInline(t)}</li>`).join('') + '</ol>';
+      continue;
+    }
+
+    if(!line.trim()){ i++; continue; }
+
+    const para = [];
+    while(i < lines.length && lines[i].trim()
+          && !/^\s*[-*•]\s+/.test(lines[i])
+          && !/^\s*\d+[.)]\s+/.test(lines[i])
+          && !/^#{1,4}\s/.test(lines[i])
+          && !startsTable(i)){
+      para.push(lines[i]); i++;
+    }
+    out += `<p>${mdInline(para.join(' '))}</p>`;
+  }
+  return out;
+}
+
+/* ---------- rail ---------- */
+async function loadBoard(){
+  try{
+    const r = await fetch(`/api/board?type=${encodeURIComponent(ipoType)}`);
+    const d = await r.json();
+    const list = $('rail-list');
+    const head = document.querySelector('.rail-head span');
+    if(head) head.textContent = TYPE_LABEL[ipoType] || 'Open now';
+
+    if(d.error){ list.innerHTML = `<div class="rail-empty">${esc(d.error)}</div>`; $('live-count').textContent='source down'; return; }
+
+    $('rail-date').textContent = d.today ? d.today.slice(5) : '';
+    $('live-count').textContent = `${d.open.length} open · ${d.upcoming.length} upcoming`;
+
+    if(!d.open.length){
+      list.innerHTML = `<div class="rail-empty">Nothing ${ipoType === 'all' ? '' : ipoType + ' '}open today. Ask what's coming up.</div>`;
+      return;
+    }
+
+    list.innerHTML = d.open.map(o => {
+      const n = o.days_until_close;
+      const today = n === 0;
+      const cls = today ? 'soon' : (n <= 2 ? 'soon' : 'safe');
+      const label = today ? 'last day' : `${n}d left`;
+      return `<button class="entry ${today?'today':''}" data-q="Tell me about the ${esc(o.name)} IPO and its deadline">
+        <div class="entry-name">${esc(o.name)}</div>
+        <div class="entry-meta"><span>closes ${esc(o.close_date.slice(5))}</span><span class="days ${cls}">${today?'':label}</span></div>
+        ${today ? '<span class="stamp">Closes<br>today</span>' : ''}
+      </button>`;
+    }).join('');
+  }catch(e){
+    $('rail-list').innerHTML = `<div class="rail-empty">Couldn't load the register. Is the server running?</div>`;
+  }
+}
+
+/* ---------- rendering ---------- */
+function addTurn(who, text){
+  const wrap = document.createElement('div');
+  wrap.className = who === 'you' ? 'from-you' : 'from-desk';
+  wrap.innerHTML = `<div class="turn-label">${who === 'you' ? 'You' : 'Desk'}</div><div class="text"></div>`;
+  wrap.querySelector('.text').textContent = text || '';
+  thread.appendChild(wrap);
+  toBottom();
+  return wrap.querySelector('.text');
+}
+
+function addTrace(html, parent){
+  const el = document.createElement('div');
+  el.className = 'trace';
+  el.innerHTML = html;
+  (parent || thread).appendChild(el);
+  if(atBottom()) toBottom();
+  return el;
+}
+
+let stepSeq = 0;
+
+/* One folding container per turn. Open while the agent works so you can watch
+   it, folded the moment the answer starts so attention moves to the answer.
+   Re-openable, because the whole point of showing tool calls is being able to
+   check them. */
+function addSteps(){
+  const id = `steps-${++stepSeq}`;
+  const el = document.createElement('div');
+  el.className = 'steps';
+  el.dataset.open = '1';
+  el.innerHTML = `
+    <button class="steps-head working" aria-expanded="true" aria-controls="${id}">
+      <span class="caret-tri">&#9654;</span>
+      <span class="steps-label">Checking the register</span>
+      <span class="steps-rule"></span>
+    </button>
+    <div class="steps-panel"><div class="steps-inner" id="${id}"></div></div>`;
+  thread.appendChild(el);
+
+  const head = el.querySelector('.steps-head');
+  const label = el.querySelector('.steps-label');
+  const inner = el.querySelector('.steps-inner');
+
+  const setOpen = open => {
+    el.dataset.open = open ? '1' : '0';
+    head.setAttribute('aria-expanded', String(!!open));
+  };
+  head.addEventListener('click', () => setOpen(el.dataset.open === '0'));
+
+  return {
+    inner,
+    fold: () => setOpen(false),
+    finish(names){
+      head.classList.remove('working');
+      const n = names.length;
+      label.textContent = n
+        ? `${n} lookup${n > 1 ? 's' : ''} · ${[...new Set(names)].join(', ')}`
+        : 'No lookups';
+    },
+    remove: () => el.remove(),
+  };
+}
+
+/* ---------- turn ---------- */
+async function askQuestion(q){
+  if(busy || !q.trim()) return;
+  busy = true; send.disabled = true;
+  $('opening')?.remove();
+
+  addTurn('you', q);
+  input.value = ''; input.style.height = 'auto';
+
+  let body = null, buffer = '', pending = false, stick = true;
+  const steps = addSteps();
+  const called = [];
+
+  try{
+    const res = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ message:q, thread_id:'web', ipo_type: ipoType })
+    });
+    if(!res.ok) throw new Error(`server returned ${res.status}`);
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let carry = '';
+
+    while(true){
+      const {value, done} = await reader.read();
+      if(done) break;
+      carry += dec.decode(value, {stream:true});
+
+      const frames = carry.split('\n\n');
+      carry = frames.pop();
+
+      for(const frame of frames){
+        const line = frame.split('\n').find(l => l.startsWith('data: '));
+        if(!line) continue;
+        const ev = JSON.parse(line.slice(6));
+
+        if(ev.event === 'tool_call'){
+          called.push(ev.name);
+          const args = Object.keys(ev.args||{}).length ? JSON.stringify(ev.args) : '';
+          addTrace(`<b>&rarr; ${esc(ev.name)}</b>${args ? ' ' + esc(args) : ''}`, steps.inner);
+        }
+        else if(ev.event === 'tool_result'){
+          const size = ev.count != null
+            ? `${ev.count} record${ev.count === 1 ? '' : 's'}`
+            : `${ev.length} chars`;
+          addTrace(`<span class="ret">&larr; ${esc(ev.name)} · ${esc(size)}</span>`, steps.inner);
+        }
+        else if(ev.event === 'token'){
+          if(!body){
+            steps.fold();          // answer is arriving; get the scaffolding out of the way
+            body = addTurn('desk','');
+          }
+          buffer += ev.text;
+          // Re-render the whole buffer each frame rather than per token. A
+          // half-arrived table has no separator row yet, so it briefly reads
+          // as a paragraph and then snaps into a table -- re-rendering is what
+          // makes that correct rather than permanently mangled.
+          if(!pending){
+            pending = true;
+            requestAnimationFrame(() => {
+              pending = false;
+              body.innerHTML = md(buffer);
+              if(stick) toBottom();
+            });
+          }
+          stick = atBottom();
+        }
+        else if(ev.event === 'error'){
+          const f = document.createElement('div');
+          f.className = 'fault';
+          f.textContent = `That turn failed — ${ev.message}. Check the server log and try again.`;
+          thread.appendChild(f); toBottom();
+        }
+      }
+    }
+    if(!body && !buffer){
+      addTrace('<span class="ret">No answer came back. Try rephrasing.</span>', steps.inner);
+    }
+    // The rAF throttle can swallow the last chunk; render once more to be sure.
+    if(body){ body.innerHTML = md(buffer); }
+  }catch(e){
+    const f = document.createElement('div');
+    f.className = 'fault';
+    f.textContent = `Lost the connection — ${e.message}. Is the server still running?`;
+    thread.appendChild(f); toBottom();
+  }finally{
+    // A turn with no tool calls leaves an empty container; drop it.
+    if(called.length) steps.finish(called); else steps.remove();
+    busy = false; send.disabled = false; input.focus();
+    loadBoard();
+  }
+}
+
+/* ---------- wiring ---------- */
+send.addEventListener('click', () => askQuestion(input.value));
+
+input.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); askQuestion(input.value); }
+});
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+document.querySelectorAll('.seg').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.dataset.type === ipoType) return;
+    ipoType = btn.dataset.type;
+    document.querySelectorAll('.seg').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.type === ipoType)));
+    loadBoard();
+  });
+});
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-q]');
+  if(t) askQuestion(t.dataset.q);
+});
+
+loadBoard();
+setInterval(loadBoard, 300000); // refresh the rail every 5 min
+input.focus();
+</script>
+</body>
+</html>
