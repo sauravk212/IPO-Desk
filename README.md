@@ -47,5 +47,5 @@ Create a `.env` file in the project root for any environment variables your Open
 ## Screenshots
 
 ![IPO Desk Screenshot](screenshot.png)
-![Chat Screenshot1](screenshot1.png)
-![Chat Screenshot2](screenshot2.png)
+![Chat Screenshot1](screenshot2.png)
+![Chat Screenshot2](screenshot3.png)
