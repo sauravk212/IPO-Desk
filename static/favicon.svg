@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Megaphone. Chunky on purpose: at 16px in a tab, thin strokes and detail
+       disappear, so this is three solid shapes and two fat arcs. -->
+  <rect width="32" height="32" rx="5" fill="#1C2B4A"/>
+  <!-- mouthpiece -->
+  <rect x="4" y="13.5" width="4" height="5" rx="1.2" fill="#EFEDE4"/>
+  <!-- horn, flaring right -->
+  <path d="M8 12.6 L18.5 7 L18.5 25 L8 19.4 Z" fill="#EFEDE4"/>
+  <!-- sound waves -->
+  <path d="M21.5 11.8 A6 6 0 0 1 21.5 20.2" fill="none" stroke="#C07E1E"
+        stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M25.2 8.6 A10 10 0 0 1 25.2 23.4" fill="none" stroke="#C07E1E"
+        stroke-width="2.4" stroke-linecap="round"/>
+</svg>
