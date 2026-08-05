@@ -12,7 +12,7 @@
 <body>
 <div class="shell">
   <header class="masthead">
-    <span class="wordmark">IPO <em>Desk</em></span>
+    <span class="wordmark">IPO Desk</span>
     <span class="eyebrow">Grey market &amp; deadlines</span>
     <div class="segs" role="group" aria-label="IPO type">
       <button class="seg" data-type="mainboard" aria-pressed="true">Mainboard</button>
@@ -32,7 +32,7 @@
       <div class="scroll" id="scroll">
         <div class="thread" id="thread">
           <div class="opening" id="opening">
-            <h1>Which issues are open, and <em>by when</em> must you apply?</h1>
+            <h1>Which IPOs are open, and <em>by when</em> must you apply?</h1>
             <p>Ask in plain language. Answers come from InvestorGain's live register, never from memory.</p>
             <div class="chips">
               <button class="chip" data-q="What IPOs are open right now?">What's open now</button>
@@ -49,7 +49,10 @@
           <textarea id="input" rows="1" placeholder="Ask about deadlines, open issues, a company by name…" aria-label="Your question"></textarea>
           <button class="send" id="send">Ask</button>
         </div>
-        <div class="hint">Enter to send · Shift+Enter for a new line</div>
+        <div class="hint-row">
+          <span class="hint">Enter to send · Shift+Enter for a new line</span>
+          <button class="clear" id="clear" type="button">Clear</button>
+        </div>
       </div>
     </main>
   </div>

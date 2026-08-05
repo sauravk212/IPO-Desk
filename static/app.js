@@ -6,6 +6,16 @@ const thread = $('thread'), scroll = $('scroll'), input = $('input'), send = $('
 let busy = false;
 let ipoType = 'mainboard';
 
+/* Server-side memory is keyed by thread_id, so clearing the screen alone would
+   leave the model still remembering everything. Rotating the id is what
+   actually starts a fresh conversation. */
+const newThreadId = () =>
+  'web-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+let threadId = newThreadId();
+
+// Snapshot the empty state now, so it can be put back after a clear.
+const openingHTML = $('opening') ? $('opening').outerHTML : '';
+
 const TYPE_LABEL = {mainboard:'Mainboard · open', sme:'SME · open', all:'All · open'};
 
 const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -199,6 +209,8 @@ function addSteps(){
 async function askQuestion(q){
   if(busy || !q.trim()) return;
   busy = true; send.disabled = true;
+  clearBtn.disabled = true;
+  disarm();                       // a pending confirm is stale once a new turn starts
   $('opening')?.remove();
 
   addTurn('you', q);
@@ -212,7 +224,7 @@ async function askQuestion(q){
     const res = await fetch('/api/chat', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ message:q, thread_id:'web', ipo_type: ipoType })
+      body: JSON.stringify({ message:q, thread_id: threadId, ipo_type: ipoType })
     });
     if(!res.ok) throw new Error(`server returned ${res.status}`);
 
@@ -285,10 +297,41 @@ async function askQuestion(q){
   }finally{
     // A turn with no tool calls leaves an empty container; drop it.
     if(called.length) steps.finish(called); else steps.remove();
-    busy = false; send.disabled = false; input.focus();
+    busy = false; send.disabled = false; clearBtn.disabled = false; input.focus();
     loadBoard();
   }
 }
+
+/* ---------- clear ---------- */
+const clearBtn = $('clear');
+let armed = false, armTimer = null;
+
+function disarm(){
+  armed = false;
+  clearTimeout(armTimer);
+  clearBtn.classList.remove('armed');
+  clearBtn.textContent = 'Clear';
+}
+
+function clearConversation(){
+  thread.innerHTML = openingHTML;   // put the prompts and heading back
+  threadId = newThreadId();         // server forgets this conversation
+  disarm();
+  toBottom();
+  input.focus();
+}
+
+clearBtn.addEventListener('click', () => {
+  if(busy) return;
+  if(!armed){
+    armed = true;
+    clearBtn.classList.add('armed');
+    clearBtn.textContent = 'Click again';
+    armTimer = setTimeout(disarm, 3500);   // don't leave it armed indefinitely
+    return;
+  }
+  clearConversation();
+});
 
 /* ---------- wiring ---------- */
 send.addEventListener('click', () => askQuestion(input.value));
