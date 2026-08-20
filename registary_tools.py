@@ -1,9 +1,17 @@
 import time
+import os
+import logging
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 from gmp_report import get_rows
 import requests
 from langchain_core.tools import tool
+from tavily import TavilyClient
+from dotenv import load_dotenv
+
+load_dotenv()
+log = logging.getLogger(__name__)
+
 
 REGISTRY_URL = "https://webnodejs.investorgain.com/cloud/v2/ipo/ipo-url-lists"
 IST = ZoneInfo("Asia/Kolkata")
@@ -23,6 +31,15 @@ TYPE_ALIASES = {
 }
 
 LABEL = {"IPO": "Mainboard", "SME": "SME"}
+
+_tavily = None
+
+
+def _tavily_client():
+    global _tavily
+    if _tavily is None:
+        _tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+    return _tavily
 
 
 def resolve_type(ipo_type: str | None) -> str:
@@ -117,6 +134,7 @@ def _all_ipos(ipo_type: str = "all") -> list[dict]:
     the next one and merges by id -- otherwise IPOs opening early next month
     are simply invisible, which would quietly break get_upcoming_ipos.
     """
+    log.info("_all_ipos called ipo_type=%s", ipo_type)
     seg = resolve_type(ipo_type)
     today = ist_today()
     nxt_m = 1 if today.month == 12 else today.month + 1
@@ -134,7 +152,9 @@ def _all_ipos(ipo_type: str = "all") -> list[dict]:
             )
     if not merged:
         raise RuntimeError("no data returned for either month")
-    return [_slim(r) for r in merged.values()]
+    rows = [_slim(r) for r in merged.values()]
+    log.info("_all_ipos returning %s rows for ipo_type=%s", len(rows), ipo_type)
+    return rows
 
 
 def _fail(e: Exception):
@@ -161,9 +181,11 @@ def get_open_ipos(ipo_type: str = "all") -> list[dict] | str:
     Each result has: name, ipo_type, open_date, close_date, and days_until_close,
     where 0 means today is the final day to apply. Sorted most urgent first.
     """
+    log.info("get_open_ipos called ipo_type=%s", ipo_type)
     try:
         rows = [r for r in _all_ipos(ipo_type) if r["status"] == "open"]
     except Exception as e:
+        log.exception("get_open_ipos failed ipo_type=%s", ipo_type)
         return _fail(e)
     rows.sort(key=lambda r: r["days_until_close"])
     return rows or f"No {_word(ipo_type)}IPOs are open for subscription today."
@@ -176,9 +198,11 @@ def get_upcoming_ipos(ipo_type: str = "all") -> list[dict] | str:
     Each result has: name, ipo_type, open_date, close_date, and days_until_open.
     Sorted soonest first.
     """
+    log.info("get_upcoming_ipos called ipo_type=%s", ipo_type)
     try:
         rows = [r for r in _all_ipos(ipo_type) if r["status"] == "upcoming"]
     except Exception as e:
+        log.exception("get_upcoming_ipos failed ipo_type=%s", ipo_type)
         return _fail(e)
     rows.sort(key=lambda r: r["days_until_open"])
     return rows or f"No upcoming {_word(ipo_type)}IPOs are listed right now."
@@ -190,6 +214,7 @@ def get_recently_closed_ipos(days: int = 7, ipo_type: str = "all") -> list[dict]
 
     Use for IPOs the user may have missed, or ones now awaiting allotment or listing.
     """
+    log.info("get_recently_closed_ipos called days=%s ipo_type=%s", days, ipo_type)
     try:
         rows = [
             r
@@ -197,6 +222,9 @@ def get_recently_closed_ipos(days: int = 7, ipo_type: str = "all") -> list[dict]
             if r["status"] == "closed" and -days <= (r["days_until_close"] or 0) < 0
         ]
     except Exception as e:
+        log.exception(
+            "get_recently_closed_ipos failed days=%s ipo_type=%s", days, ipo_type
+        )
         return _fail(e)
     rows.sort(key=lambda r: r["days_until_close"], reverse=True)
     return rows or f"No {_word(ipo_type)}IPOs closed in the last {days} days."
@@ -243,15 +271,51 @@ def find_ipo_by_name(name: str, ipo_type: str = "all") -> list[dict] | str:
     Use when the user names a company rather than asking for a list.
     Leave ipo_type as "all" unless the user restricted the segment.
     """
+    log.info("find_ipo_by_name called name=%s ipo_type=%s", name, ipo_type)
     try:
         needle = name.strip().lower()
         rows = [r for r in _all_ipos(ipo_type) if needle in (r["name"] or "").lower()]
     except Exception as e:
+        log.exception("find_ipo_by_name failed name=%s ipo_type=%s", name, ipo_type)
         return _fail(e)
     if not rows:
         return f"No IPO found matching '{name}'. Do not guess -- say it was not found."
     rows.sort(key=lambda r: r["open_date"] or "", reverse=True)
     return rows[:10]
+
+
+@tool
+def web_search(query: str, max_results: int = 5) -> dict | str:
+    """Search the web for IPO information the other tools do not hold.
+
+    USE FOR: what the company does, sector, financials, DRHP detail, promoter
+    background, analyst reviews, allotment announcements, listing-day news.
+
+    DO NOT USE FOR: dates, GMP, cap price, lot size, minimum application,
+    subscription, issue size. The other tools are authoritative for those and
+    web pages are frequently stale.
+
+    Attribute and link every claim taken from results.
+    """
+    try:
+        raw = _tavily_client().search(
+            query, max_results=max_results, include_answer=True
+        )
+    except Exception as e:
+        raise
+        return f"SEARCH_UNAVAILABLE: {type(e).__name__}: {e}. Answer from the IPO tools and say search failed."
+
+    return {
+        "answer": raw.get("answer"),
+        "results": [
+            {
+                "title": r.get("title"),
+                "url": r.get("url"),
+                "snippet": (r.get("content") or "")[:600],
+            }
+            for r in (raw.get("results") or [])
+        ],
+    }
 
 
 def _word(ipo_type: str) -> str:
@@ -269,6 +333,8 @@ for _t in (
     get_upcoming_ipos,
     get_recently_closed_ipos,
     find_ipo_by_name,
+    calculate_ipo_listing_gain,
+    web_search,
 ):
     _t.description = (_t.description or "").rstrip() + "\n" + _TYPE_DOC
 
@@ -278,4 +344,5 @@ IPO_TOOLS = [
     get_recently_closed_ipos,
     find_ipo_by_name,
     calculate_ipo_listing_gain,
+    web_search,
 ]

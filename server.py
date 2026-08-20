@@ -14,6 +14,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langchain.agents import create_agent
 from pydantic import BaseModel
 
+
 from registary_tools import IPO_TOOLS, _all_ipos, ist_today
 
 load_dotenv()
@@ -45,7 +46,7 @@ def dated_prompt() -> str:
 
 
 AGENT = create_agent(
-    model=ChatOpenAI(model="gpt-4o-mini", temperature=0, streaming=True),
+    model=ChatOpenAI(model="gpt-4o-mini", temperature=0.5, streaming=True),
     tools=IPO_TOOLS,
     system_prompt=dated_prompt(),
     checkpointer=InMemorySaver(),
@@ -65,6 +66,7 @@ app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 
 @app.get("/")
 async def index():
+    log.info("GET / requested")
     return FileResponse(HERE / "index.html")
 
 
@@ -72,6 +74,7 @@ async def index():
 async def board(type: str = "all"):
     """Rail data. Calls the plain function, not the @tool wrapper -- no LLM
     involved, so there's no reason to pay the tool-invocation overhead."""
+    log.info("GET /api/board requested type=%s", type)
     try:
         rows = await asyncio.to_thread(_all_ipos, type)
     except Exception as e:
@@ -161,6 +164,7 @@ async def run_turn(message: str, thread_id: str, ipo_type: str = "all"):
     streamed_any = False
     last_answer = ""  # fallback, harvested from "updates"
 
+    log.info("run_turn start thread=%s ipo_type=%s", thread_id, ipo_type)
     yield sse("start")
 
     try:
@@ -228,11 +232,13 @@ async def run_turn(message: str, thread_id: str, ipo_type: str = "all"):
         log.exception("turn failed")
         yield sse("error", message=f"{type(e).__name__}: {e}")
 
+    log.info("run_turn done thread=%s ipo_type=%s streamed_any=%s", thread_id, ipo_type, streamed_any)
     yield sse("done")
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
+    log.info("POST /api/chat request thread_id=%s ipo_type=%s message_len=%s", req.thread_id, req.ipo_type, len(req.message or ""))
     return StreamingResponse(
         run_turn(req.message, req.thread_id, req.ipo_type),
         media_type="text/event-stream",
