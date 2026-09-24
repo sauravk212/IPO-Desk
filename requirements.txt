@@ -7,5 +7,4 @@ langchain-core>=0.1.0
 langchain-openai>=0.1.0
 langgraph>=0.1.0
 langchain
-
-tavily
+tavily-python
