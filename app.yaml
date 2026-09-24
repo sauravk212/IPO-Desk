@@ -5,3 +5,10 @@ command:
   - "0.0.0.0"
   - "--port"
   - "8000"
+
+env:
+  - name: OPENAI_API_KEY
+    valueFrom: OPENAI_API_KEY
+
+  - name: TAVILY_API_KEY
+    valueFrom: TAVILY_API_KEY
