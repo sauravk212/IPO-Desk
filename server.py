@@ -1,19 +1,3 @@
-"""Web server for the IPO agent.
-
-    pip install fastapi uvicorn
-    uvicorn server:app --reload --port 8000
-
-Two endpoints:
-    GET  /            -> the UI
-    GET  /api/board   -> open + upcoming IPOs for the left rail
-    POST /api/chat    -> Server-Sent Events stream of the agent's turn
-
-SSE is the right fit here: one-way server push, plain HTTP, no websocket
-handshake or reconnect logic to write. Each line is `data: {json}\\n\\n`.
-"""
-
-from __future__ import annotations
-
 import asyncio
 import json
 import logging
@@ -22,12 +6,14 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain.agents import create_agent
 from pydantic import BaseModel
+
 
 from registary_tools import IPO_TOOLS, _all_ipos, ist_today
 
@@ -50,6 +36,7 @@ except ImportError:
 # stays up for three days would otherwise keep insisting it's Tuesday, and
 # every deadline the model computes would drift with it.
 
+
 def dated_prompt() -> str:
     return (
         f"{SYSTEM_PROMPT}\n\n"
@@ -59,7 +46,7 @@ def dated_prompt() -> str:
 
 
 AGENT = create_agent(
-    model=ChatOpenAI(model="gpt-4o-mini", temperature=0, streaming=True),
+    model=ChatOpenAI(model="gpt-4o-mini", temperature=0.5, streaming=True),
     tools=IPO_TOOLS,
     system_prompt=dated_prompt(),
     checkpointer=InMemorySaver(),
@@ -67,13 +54,19 @@ AGENT = create_agent(
 
 app = FastAPI(title="IPO Desk")
 
+# styles.css and app.js live here. Mounted rather than routed individually so
+# adding assets later needs no server change.
+app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
+
 
 # --------------------------------------------------------------------------
 # routes
 # --------------------------------------------------------------------------
 
+
 @app.get("/")
 async def index():
+    log.info("GET / requested")
     return FileResponse(HERE / "index.html")
 
 
@@ -81,11 +74,16 @@ async def index():
 async def board(type: str = "all"):
     """Rail data. Calls the plain function, not the @tool wrapper -- no LLM
     involved, so there's no reason to pay the tool-invocation overhead."""
+    log.info("GET /api/board requested type=%s", type)
     try:
         rows = await asyncio.to_thread(_all_ipos, type)
     except Exception as e:
         log.warning("board fetch failed: %s", e)
-        return {"error": "Couldn't reach the IPO source. Retry in a moment.", "open": [], "upcoming": []}
+        return {
+            "error": "Couldn't reach the IPO source. Retry in a moment.",
+            "open": [],
+            "upcoming": [],
+        }
 
     open_rows = sorted(
         (r for r in rows if r["status"] == "open"),
@@ -112,9 +110,9 @@ class ChatRequest(BaseModel):
 
 SCOPE_NOTE = {
     "mainboard": "The user has the view filtered to Mainboard IPOs. Pass "
-                 "ipo_type=\"mainboard\" to every tool call and mention only Mainboard issues.",
-    "sme": "The user has the view filtered to SME IPOs. Pass ipo_type=\"sme\" to "
-           "every tool call and mention only SME issues.",
+    'ipo_type="mainboard" to every tool call and mention only Mainboard issues.',
+    "sme": 'The user has the view filtered to SME IPOs. Pass ipo_type="sme" to '
+    "every tool call and mention only SME issues.",
 }
 
 
@@ -166,6 +164,7 @@ async def run_turn(message: str, thread_id: str, ipo_type: str = "all"):
     streamed_any = False
     last_answer = ""  # fallback, harvested from "updates"
 
+    log.info("run_turn start thread=%s ipo_type=%s", thread_id, ipo_type)
     yield sse("start")
 
     try:
@@ -214,7 +213,9 @@ async def run_turn(message: str, thread_id: str, ipo_type: str = "all"):
 
                         # A complete AI message with no tool calls is the answer.
                         # Keep it in reserve in case token streaming yielded nothing.
-                        elif getattr(msg, "type", "") in AI_TYPES and not getattr(msg, "tool_calls", None):
+                        elif getattr(msg, "type", "") in AI_TYPES and not getattr(
+                            msg, "tool_calls", None
+                        ):
                             text = text_of(msg)
                             if text:
                                 last_answer = text
@@ -222,18 +223,22 @@ async def run_turn(message: str, thread_id: str, ipo_type: str = "all"):
         # Belt and braces: if streaming produced no text but the graph did
         # produce an answer, send it in one go rather than showing an empty turn.
         if not streamed_any and last_answer:
-            log.warning("token streaming produced nothing; falling back to final message")
+            log.warning(
+                "token streaming produced nothing; falling back to final message"
+            )
             yield sse("token", text=last_answer)
 
     except Exception as e:
         log.exception("turn failed")
         yield sse("error", message=f"{type(e).__name__}: {e}")
 
+    log.info("run_turn done thread=%s ipo_type=%s streamed_any=%s", thread_id, ipo_type, streamed_any)
     yield sse("done")
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
+    log.info("POST /api/chat request thread_id=%s ipo_type=%s message_len=%s", req.thread_id, req.ipo_type, len(req.message or ""))
     return StreamingResponse(
         run_turn(req.message, req.thread_id, req.ipo_type),
         media_type="text/event-stream",

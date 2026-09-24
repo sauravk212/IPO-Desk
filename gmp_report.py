@@ -119,8 +119,19 @@ def fetch_report(
 
     hit = _cache.get(key)
     if hit and not force and time.time() - hit[0] < CACHE_TTL:
+        log.info("fetch_report cache hit %s page=%s search=%s", ipo_type, page, search)
         return hit[1]
 
+    log.info(
+        "fetch_report request %s page=%s month=%s year=%s search=%s force=%s url=%s",
+        ipo_type,
+        page,
+        month,
+        year,
+        search,
+        force,
+        url,
+    )
     resp = requests.get(url, headers=HEADERS, timeout=20)
     resp.raise_for_status()
     payload = resp.json()
@@ -219,8 +230,10 @@ def parse_row(row: dict) -> dict:
 
 
 def get_rows(ipo_type: str = "mainboard", **kw) -> list[dict]:
+    log.info("get_rows called ipo_type=%s kwargs=%s", ipo_type, kw)
     payload = fetch_report(ipo_type, **kw)
     rows = payload.get("reportTableData") or []
+    log.info("get_rows received %s raw rows", len(rows))
     out = []
     for raw in rows:
         try:
