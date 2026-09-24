@@ -99,7 +99,7 @@ body{
 /* ---------- conversation ---------- */
 .convo{display:grid;grid-template-rows:1fr auto;min-height:0}
 .scroll{overflow-y:auto;padding:26px 30px 10px}
-.thread{max-width:660px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.thread{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 
 .turn-label{
   font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;
@@ -204,7 +204,7 @@ body{
 .fault{border-left:2px solid var(--stamp);padding-left:13px;color:var(--stamp);font-size:13.5px}
 
 /* ---------- empty state ---------- */
-.opening{max-width:660px;margin:8vh auto 0;text-align:left}
+.opening{max-width:1200px;margin:8vh auto 0;text-align:left}
 .opening h1{font-family:var(--display);font-size:34px;font-weight:400;line-height:1.2;letter-spacing:-.015em}
 .opening h1 em{font-style:italic}
 .opening p{color:var(--ink-soft);margin-top:12px;font-size:15px;max-width:44ch}
@@ -222,7 +222,7 @@ body{
   border-top:1px solid var(--rule);background:var(--paper);
   padding:14px 30px 20px;
 }
-.composer-inner{max-width:660px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+.composer-inner{max-width:1200px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
 textarea{
   flex:1;resize:none;font:inherit;color:var(--ink);
   background:none;border:0;border-bottom:1.5px solid var(--rule);
@@ -238,7 +238,7 @@ textarea::placeholder{color:var(--ink-soft);opacity:.75}
 .send:hover{opacity:.86}
 .send:disabled{opacity:.35;cursor:not-allowed}
 .hint-row{
-  max-width:660px;margin:8px auto 0;
+  max-width:1200px;margin:8px auto 0;
   display:flex;justify-content:space-between;align-items:center;gap:12px;
 }
 .hint{
